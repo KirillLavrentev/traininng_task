@@ -1,0 +1,40 @@
+---
+# [START gke_manifests_helloweb_ingress_tls_ingress_helloweb]
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: helloweb
+  labels:
+    app: hello
+  annotations:
+    kubernetes.io/ingress.allow-http: "false" # disable HTTP
+spec:
+  tls:
+    - secretName: helloworld-tls
+  defaultBackend:
+    service:
+      name: helloweb-backend
+      port:
+        number: 443
+# [END gke_manifests_helloweb_ingress_tls_ingress_helloweb]
+---
+# [START gke_manifests_helloweb_ingress_tls_service_helloweb_backend]
+apiVersion: v1
+kind: Service
+metadata:
+  name: helloweb-backend
+  labels:
+    app: hello
+  annotations:
+    service.alpha.kubernetes.io/app-protocols: '{"helloweb-tls":"HTTPS"}'
+spec:
+  type: NodePort
+  selector:
+    app: hello
+    tier: web
+  ports:
+  - name: helloweb-tls # port name must match the value in the annotation
+    port: 443
+    targetPort: 8443
+# [END gke_manifests_helloweb_ingress_tls_service_helloweb_backend]
+---

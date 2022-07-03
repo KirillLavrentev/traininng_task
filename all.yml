@@ -1,0 +1,7 @@
+---
+- name: All configs
+  hosts: localhost
+  roles:
+    - preconfig
+    - install_minikube
+    - deploy

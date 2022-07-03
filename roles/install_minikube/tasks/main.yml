@@ -1,0 +1,65 @@
+---
+- name: Create download directory
+  file:
+    state: directory
+    mode: 'u=rwx,go=rx'
+    dest: '{{ minikube_download_dir }}'
+
+- name: Download sha256sum
+  get_url:
+    url: '{{ minikube_mirror }}/{{ minikube_redis_filename }}.sha256'
+    dest: '{{ minikube_download_dir }}/{{ minikube_download_filename }}.sha256'
+    force: no
+    use_proxy: yes
+    validate_certs: yes
+    mode: 'u=rw,go=r'
+
+- name: Read sha256sum
+  slurp:
+    src: '{{ minikube_download_dir }}/{{ minikube_download_filename }}.sha256'
+  register: minikube_sha256sum
+
+- name: Download Minikube
+  get_url:
+    url: '{{ minikube_mirror }}/{{ minikube_redis_filename }}'
+    dest: '{{ minikube_download_dir }}/{{ minikube_download_filename }}'
+    checksum: 'sha256:{{ minikube_sha256sum.content | b64decode | trim }}'
+    force: no
+    use_proxy: yes
+    validate_certs: yes
+    mode: 'u=rw,go=r'
+
+- name: Create the Minikube installation dir
+  become: yes
+  file:
+    state: directory
+    owner: root
+    group: root
+    mode: 'u=rwx,go=rx'
+    dest: '{{ minikube_install_dir }}'
+
+- name: Install Minikube
+  become: yes
+  copy:
+    src: '{{ minikube_download_dir }}/{{ minikube_download_filename }}'
+    remote_src: yes
+    dest: '{{ minikube_install_path }}'
+    force: yes
+    owner: root
+    group: root
+    mode: 'u=rwx,go=rx'
+
+- name: Get last version of kubectl
+  become: yes
+  shell: curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt
+  register: page
+
+- name: Install kubectl
+  become: yes
+  get_url:
+    url: "https://storage.googleapis.com/kubernetes-release/release/{{ page.stdout }}/bin/linux/amd64/kubectl"
+    dest: '/usr/local/bin/kubectl'
+    force: no
+    use_proxy: yes
+    mode: 'u=rwx,go=rx'
+

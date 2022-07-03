@@ -1,0 +1,43 @@
+---
+- name: Create a directory for certs if it does not exist
+  file:
+    path: ./roles/deploy/.certs/
+    state: directory
+    mode: '0755'
+
+- name: Create self-signed certificates 1
+  openssl_privatekey:
+    path: ./roles/deploy/.certs/tls.key
+    size: 2048 
+
+- name: Create self-signed certificates 2
+  openssl_csr:
+    path: ./roles/deploy/.certs/tls.csr
+    privatekey_path: ./roles/deploy/.certs/tls.key
+
+- name: Create self-signed certificates 3
+  openssl_certificate:
+    provider: selfsigned
+    path: ./roles/deploy/.certs/tls.crt
+    privatekey_path: ./roles/deploy/.certs/tls.key
+    csr_path: ./roles/deploy/.certs/tls.csr
+
+- name: Import the TLS certificate and key as Secret
+  shell: 
+    cd ./roles/deploy/.certs/ && kubectl create secret tls helloworld-tls --cert=tls.crt --key=tls.key
+
+- name: Deploy the application
+  shell: 
+    cd ./roles/deploy/ && kubectl apply -f manifests/helloweb-deployment.yml -f manifests/helloweb-ingress-tls.yml
+
+- name: Scale the app to replicas == 3
+  shell: 
+    kubectl scale deployment helloweb --replicas=3
+
+- name: Query the application
+  shell: minikube service helloweb-backend --url
+  register: out
+
+- name: Print url
+  debug:
+    msg: "{{ out.stdout }}"
