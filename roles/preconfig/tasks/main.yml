@@ -8,8 +8,12 @@
         dest: /tmp
         mode: 'u=rw,go=r'
 
-    - name: Install python3 if it is not installed
+    - name: Install latest python3 if it is not installed
       become: yes
       yum:
-        name: python3, /tmp/VirtualBox-6.1-6.1.34_150636_el7-2.x86_64.rpm
-        state: present
+        name: "{{ item }}"
+        state: latest
+        update_cache: true
+      with_items:
+        - python3
+        - /tmp/VirtualBox-6.1-6.1.34_150636_el7-2.x86_64.rpm
